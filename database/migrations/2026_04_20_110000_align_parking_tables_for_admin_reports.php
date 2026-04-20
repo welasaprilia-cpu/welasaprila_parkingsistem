@@ -36,22 +36,20 @@ return new class extends Migration
         $this->backfillParkingColumns();
         $this->backfillPaymentColumns();
 
-        $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'parking_payments' AND COLUMN_NAME = 'parking_id' AND REFERENCED_TABLE_NAME = 'parkings'");
-
-        Schema::table('parking_payments', function (Blueprint $table) use ($foreignKeys) {
-            if (Schema::hasColumn('parking_payments', 'parking_id') && empty($foreignKeys)) {
+        if (Schema::hasColumn('parking_payments', 'parking_id') && ! $this->foreignKeyExists('parking_payments', 'parking_id', 'parkings')) {
+            Schema::table('parking_payments', function (Blueprint $table) {
                 $table->foreign('parking_id')->references('id')->on('parkings')->nullOnDelete();
-            }
-        });
+            });
+        }
     }
 
     public function down(): void
     {
-        $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'parking_payments' AND COLUMN_NAME = 'parking_id' AND REFERENCED_TABLE_NAME = 'parkings'");
+        $foreignKeyName = $this->getForeignKeyName('parking_payments', 'parking_id', 'parkings');
 
-        Schema::table('parking_payments', function (Blueprint $table) use ($foreignKeys) {
-            if (! empty($foreignKeys)) {
-                $table->dropForeign($foreignKeys[0]->CONSTRAINT_NAME);
+        Schema::table('parking_payments', function (Blueprint $table) use ($foreignKeyName) {
+            if (! empty($foreignKeyName)) {
+                $table->dropForeign($foreignKeyName);
             }
 
             if (Schema::hasColumn('parking_payments', 'parking_id')) {
@@ -153,4 +151,110 @@ return new class extends Migration
             }
         }
     }
-};
+
+    private function foreignKeyExists(string $table, string $column, string $referencedTable): bool
+    {
+        $connection = DB::connection();
+        $driver = $connection->getDriverName();
+
+        if ($driver === 'pgsql') {
+            $schema = $connection->selectOne('SELECT current_schema() AS schema')->schema;
+
+            return (bool) DB::selectOne(
+                "SELECT tc.constraint_name
+                 FROM information_schema.table_constraints AS tc
+                 JOIN information_schema.key_column_usage AS kcu
+                     ON tc.constraint_name = kcu.constraint_name
+                     AND tc.constraint_schema = kcu.constraint_schema
+                 JOIN information_schema.constraint_column_usage AS ccu
+                     ON ccu.constraint_name = tc.constraint_name
+                     AND ccu.constraint_schema = tc.constraint_schema
+                 WHERE tc.constraint_type = 'FOREIGN KEY'
+                   AND kcu.table_schema = ?
+                   AND kcu.table_name = ?
+                   AND kcu.column_name = ?
+                   AND ccu.table_name = ?",
+                [$schema, $table, $column, $referencedTable]
+            );
+        }
+
+        if ($driver === 'mysql') {
+            return (bool) DB::selectOne(
+                "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? AND REFERENCED_TABLE_NAME = ?",
+                [$table, $column, $referencedTable]
+            );
+        }
+
+        return (bool) DB::selectOne(
+            "SELECT tc.constraint_name
+                 FROM information_schema.table_constraints AS tc
+                 JOIN information_schema.key_column_usage AS kcu
+                     ON tc.constraint_name = kcu.constraint_name
+                     AND tc.constraint_schema = kcu.constraint_schema
+                 JOIN information_schema.constraint_column_usage AS ccu
+                     ON ccu.constraint_name = tc.constraint_name
+                     AND ccu.constraint_schema = tc.constraint_schema
+                 WHERE tc.constraint_type = 'FOREIGN KEY'
+                   AND kcu.table_name = ?
+                   AND kcu.column_name = ?
+                   AND ccu.table_name = ?",
+            [$table, $column, $referencedTable]
+        );
+    }
+
+    private function getForeignKeyName(string $table, string $column, string $referencedTable): ?string
+    {
+        $connection = DB::connection();
+        $driver = $connection->getDriverName();
+
+        if ($driver === 'pgsql') {
+            $schema = $connection->selectOne('SELECT current_schema() AS schema')->schema;
+
+            $record = DB::selectOne(
+                "SELECT tc.constraint_name
+                 FROM information_schema.table_constraints AS tc
+                 JOIN information_schema.key_column_usage AS kcu
+                     ON tc.constraint_name = kcu.constraint_name
+                     AND tc.constraint_schema = kcu.constraint_schema
+                 JOIN information_schema.constraint_column_usage AS ccu
+                     ON ccu.constraint_name = tc.constraint_name
+                     AND ccu.constraint_schema = tc.constraint_schema
+                 WHERE tc.constraint_type = 'FOREIGN KEY'
+                   AND kcu.table_schema = ?
+                   AND kcu.table_name = ?
+                   AND kcu.column_name = ?
+                   AND ccu.table_name = ?",
+                [$schema, $table, $column, $referencedTable]
+            );
+
+            return $record?->constraint_name;
+        }
+
+        if ($driver === 'mysql') {
+            $record = DB::selectOne(
+                "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? AND REFERENCED_TABLE_NAME = ?",
+                [$table, $column, $referencedTable]
+            );
+
+            return $record?->CONSTRAINT_NAME;
+        }
+
+        $record = DB::selectOne(
+            "SELECT tc.constraint_name
+                 FROM information_schema.table_constraints AS tc
+                 JOIN information_schema.key_column_usage AS kcu
+                     ON tc.constraint_name = kcu.constraint_name
+                     AND tc.constraint_schema = kcu.constraint_schema
+                 JOIN information_schema.constraint_column_usage AS ccu
+                     ON ccu.constraint_name = tc.constraint_name
+                     AND ccu.constraint_schema = tc.constraint_schema
+                 WHERE tc.constraint_type = 'FOREIGN KEY'
+                   AND kcu.table_name = ?
+                   AND kcu.column_name = ?
+                   AND ccu.table_name = ?",
+            [$table, $column, $referencedTable]
+        );
+
+        return $record?->constraint_name;
+    }
+}
