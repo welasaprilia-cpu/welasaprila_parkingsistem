@@ -1,11 +1,127 @@
-@import 'tailwindcss';
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
+/* Interactivity */
+button, a, .parking-spot, .spot-button {
+  cursor: pointer;
+}
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+/* Root */
+:root {
+  --bg-primary: linear-gradient(135deg, #0a0a1a, #1a0d2e, #1a0033);
+  --bg-card: rgba(255, 255, 255, 0.05);
+  --bg-card-hover: rgba(255, 255, 255, 0.12);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --text-primary: #ffffff;
+  --text-secondary: #d1d5db;
+  --accent-blue: #3b82f6;
+  --accent-emerald: #10b981;
+  --accent-purple: #8b5cf6;
+}
+
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Body */
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Container */
+.container {
+  max-width: 1440px;
+  margin: auto;
+  padding: 0 1.5rem;
+}
+
+/* Navbar */
+.navbar {
+  background: rgba(10, 10, 26, 0.95);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.logo {
+  font-size: 2rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+
+  /* FIX background-clip */
+  -webkit-background-clip: text;
+  background-clip: text;
+
+  /* FIX text transparan */
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Button */
+.btn {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 25px;
+  transition: 0.3s;
+}
+
+.btn:hover {
+  transform: translateY(-3px);
+}
+
+/* Card */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 2rem;
+  transition: 0.3s;
+}
+
+.card:hover {
+  background: var(--bg-card-hover);
+  transform: translateY(-10px);
+}
+
+/* Status */
+.status-available {
+  color: var(--accent-emerald);
+}
+
+.status-occupied {
+  color: red;
+}
+
+/* Glow Animation */
+@keyframes glow {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.glow {
+  animation: glow 2s infinite;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .card {
+    padding: 1.5rem;
+  }
+
+  .btn {
+    padding: 0.8rem 1.5rem;
+  }
+}
+
+/* Form */
+input, select, textarea {
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255,255,255,0.05);
+  color: white;
 }
