@@ -257,4 +257,4 @@ return new class extends Migration
 
         return $record?->constraint_name;
     }
-}
+};
